@@ -1,0 +1,28 @@
+FROM ppc64le/ubuntu:16.04
+
+RUN apt-get update && \
+    apt-get install -y \ 
+        build-essential \
+        git coffeescript libcurl4-openssl-dev libboost-dev libicu-dev m4 \
+        libprotobuf-dev protobuf-compiler nodejs nodejs-legacy npm wget curl
+
+RUN git clone https://github.com/bpradipt/rethinkdb.git /rethinkdb
+
+RUN git config --global user.email "pradipta.banerjee@gmail.com" && \
+     git config --global user.name "Pradipta Kr. Banerjee"
+
+RUN cd /rethinkdb && \
+    ./configure \
+      --prefix=/usr  \
+      --sysconfdir=/etc \
+      --localstatedir=/var \
+      --fetch v8 \
+      --fetch browserify  \
+      --dynamic all  \
+      --with-system-malloc  && \
+    make THREADED_COROUTINES=1 --jobs $(grep -c '^processor' /proc/cpuinfo) && \
+    make --jobs $(grep -c '^processor' /proc/cpuinfo) install
+
+
+ENTRYPOINT ["rethinkdb"]
+ 
