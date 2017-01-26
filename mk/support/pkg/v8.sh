@@ -1,5 +1,7 @@
+ARCH=`uname -m`
+
 # See http://omahaproxy.appspot.com/ for the current stable/beta/dev versions of v8
-if [[ "$OS" != Windows ]]; then
+if [[ "$OS" != Windows &&  "$ARCH" != "ppc64le" ]]; then
 
     # V8 3.30 doesn't play well with Visual Studio 2015
     # But 4.7 has no source distribution, making it harder to build on Linux
@@ -43,14 +45,15 @@ pkg_install-include () {
     cp -RL "$src_dir/include/." "$install_dir/include"
     sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
 
-    # -- assemble the icu headers
-    if [[ "$CROSS_COMPILING" = 1 ]]; then
-        ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
-    else
-        in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
+    if [[ $ARCH != "ppc64le" ]]; then 
+       # -- assemble the icu headers
+       if [[ "$CROSS_COMPILING" = 1 ]]; then
+          ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
+       else
+          in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
+       fi
+       in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
     fi
-
-    in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
 }
 
 pkg_install-include-windows () {
@@ -99,10 +102,11 @@ pkg_install () {
         i?86)   arch=ia32 ;;
         x86_64) arch=x64 ;;
         arm*)   arch=arm; arch_gypflags=$raspberry_pi_gypflags ;;
+        ppc64le*|powerpc*) arch=ppc64 ;;
         *)      arch=native ;;
     esac
     mode=release
-    pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX GYPFLAGS="-Dwerror= $arch_gypflags" V=1
+    pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX GYPFLAGS=" -Duse_system_icu=1 -Dwerror= $arch_gypflags" V=1
     for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
         name=`basename $lib`
         cp $lib "$install_dir/lib/${name/.$arch/}"
@@ -113,10 +117,18 @@ pkg_install () {
 pkg_link-flags () {
     # These are the necessary libraries recommended by the docs:
     # https://developers.google.com/v8/get_started#hello
-    for lib in libv8_{base,libbase,snapshot,libplatform}; do
-        echo "$install_dir/lib/$lib.a"
-    done
-    for lib in libicu{i18n,uc,data}; do
-        echo "$install_dir/lib/$lib.a"
-    done
+    if [[ "$ARCH" != "ppc64le" ]]; then
+       for lib in libv8_{base,libbase,snapshot,libplatform}; do
+           echo "$install_dir/lib/$lib.a"
+       done
+       for lib in libicu{i18n,uc,data}; do
+           echo "$install_dir/lib/$lib.a"
+       done
+    elif [[ "$ARCH" == "ppc64le" ]]; then
+       # ICU is linked separately
+       for lib in libv8_{base,libbase,nosnapshot,libplatform}; do
+           echo "$install_dir/lib/$lib.a"
+       done
+    fi
+
 }

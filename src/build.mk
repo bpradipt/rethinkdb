@@ -53,7 +53,7 @@ else ifeq ($(COMPILER),INTEL)
 else ifeq ($(COMPILER),GCC)
 
   ifeq ($(OS),Linux)
-    RT_LDFLAGS += -Wl,--no-as-needed
+    RT_LDFLAGS += -licui18n -licuuc -ldl -Wl,--no-as-needed
   endif
 
   ifeq ($(STATICFORCE),1)

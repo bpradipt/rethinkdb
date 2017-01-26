@@ -259,7 +259,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     the stack by swapcontext; they're callee-saved, so whatever happens to be in
     them will be ignored. */
     sp -= 6;
-#elif defined(__arm__)
+#elif defined(__arm__) || defined (__powerpc64__)
     /* We must preserve r4, r5, r6, r7, r8, r9, r10, and r11. Because we have to store the LR (r14) in swapcontext as well, we also store r12 in swapcontext to keep the stack double-word-aligned. However, we already accounted for both of those by decrementing sp twice above (once for r14 and once for r12, say). */
     sp -= 8;
 #else
@@ -423,7 +423,7 @@ void context_switch(artificial_stack_context_ref_t *current_context_out, artific
 }
 
 asm(
-#if defined(__i386__) || defined(__x86_64__) || defined(__arm__)
+#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined (__powerpc64__)
 // We keep the i386, x86_64, and ARM stuff interleaved in order to enforce commonality.
 #if defined(__x86_64__)
 #if defined(__LP64__) || defined(__LLP64__)
