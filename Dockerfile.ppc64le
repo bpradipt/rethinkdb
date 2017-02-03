@@ -18,9 +18,8 @@ RUN cd /rethinkdb && \
       --localstatedir=/var \
       --fetch v8 \
       --fetch browserify  \
-      --dynamic all  \
-      --with-system-malloc  && \
-    make THREADED_COROUTINES=1 --jobs $(grep -c '^processor' /proc/cpuinfo) && \
+      --dynamic all  && \
+    make --jobs $(grep -c '^processor' /proc/cpuinfo) && \
     make --jobs $(grep -c '^processor' /proc/cpuinfo) install
 
 
