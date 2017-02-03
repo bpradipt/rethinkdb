@@ -247,6 +247,9 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     sp--;
 
+#if defined (__powerpc64__)
+    sp -= 31;
+#endif
     // Subtracted 2*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64) aligned.
 
     *sp = reinterpret_cast<uintptr_t>(initial_fun);
@@ -259,9 +262,11 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     the stack by swapcontext; they're callee-saved, so whatever happens to be in
     them will be ignored. */
     sp -= 6;
-#elif defined(__arm__) || defined (__powerpc64__)
+#elif defined(__arm__)
     /* We must preserve r4, r5, r6, r7, r8, r9, r10, and r11. Because we have to store the LR (r14) in swapcontext as well, we also store r12 in swapcontext to keep the stack double-word-aligned. However, we already accounted for both of those by decrementing sp twice above (once for r14 and once for r12, say). */
     sp -= 8;
+#elif defined (__powerpc64__)
+    sp += 33;
 #else
 #error "Unsupported architecture."
 #endif
@@ -442,6 +447,8 @@ asm(
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
 #elif defined(__arm__)
     /* `current_pointer_out` is in `r0`. `dest_pointer` is in `r1` */
+#elif defined(__powerpc64__)
+    /* `current_pointer_out` is in `r3`. `dest_pointer` is in `r4` */
 #endif
 
     /* Save preserved registers (the return address is already on the stack). */
@@ -463,6 +470,47 @@ asm(
     "push {r12}\n"
     "push {r14}\n"
     "push {r4-r11}\n"
+#elif defined(__powerpc64__)
+  "std	1, 0(3)\n"
+  "addi	1,1,-304\n"
+  "mfcr     0\n"
+  "std      0, 32(1)\n"
+  "mflr     0\n"
+  "std      0, 40(1)\n"
+  "mfctr    0\n"
+  "std      0, 48(1)\n"
+  "mfxer    0\n"
+  "std      0, 56(1)\n"
+  "std       0, 64+(8*0)(1)\n"
+  "std       2, 64+(8*1)(1)\n"
+  "std       3, 64+(8*2)(1)\n"
+  "std       4, 64+(8*3)(1)\n"
+  "std       5, 64+(8*4)(1)\n"
+  "std       6, 64+(8*5)(1)\n"
+  "std       7, 64+(8*6)(1)\n"
+  "std       8, 64+(8*7)(1)\n"
+  "std       9, 64+(8*8)(1)\n"
+  "std      10, 64+(8*9)(1)\n"
+  "std      11, 64+(8*10)(1)\n"
+  "std      12, 64+(8*11)(1)\n"
+  "std      14, 64+(8*12)(1)\n"
+  "std      15, 64+(8*13)(1)\n"
+  "std      16, 64+(8*14)(1)\n"
+  "std      17, 64+(8*15)(1)\n"
+  "std      18, 64+(8*16)(1)\n"
+  "std      19, 64+(8*17)(1)\n"
+  "std      20, 64+(8*18)(1)\n"
+  "std      21, 64+(8*19)(1)\n"
+  "std      22, 64+(8*20)(1)\n"
+  "std      23, 64+(8*21)(1)\n"
+  "std      24, 64+(8*22)(1)\n"
+  "std      25, 64+(8*23)(1)\n"
+  "std      26, 64+(8*24)(1)\n"
+  "std      27, 64+(8*25)(1)\n"
+  "std      28, 64+(8*26)(1)\n"
+  "std      29, 64+(8*27)(1)\n"
+  "std      30, 64+(8*28)(1)\n"
+  "std      31, 64+(8*29)(1)\n"
 #endif
 
     /* Save old stack pointer. */
@@ -491,6 +539,8 @@ asm(
 #elif defined(__arm__)
     /* On ARM, the second argument is in `r1` */
     "mov r13, r1\n"
+#elif defined(__powerpc64__)
+    "mr	1, 4\n"
 #endif
 
 #if defined(__i386__)
@@ -509,6 +559,47 @@ asm(
     "pop {r4-r11}\n"
     "pop {r14}\n"
     "pop {r12}\n"
+#elif defined(__powerpc64__)
+  "addi	1,1,-304\n"
+  "ld        0, 64+(8*0)(1)\n"
+  "ld        2, 64+(8*1)(1)\n"
+  "ld        3, 64+(8*2)(1)\n"
+  "ld        4, 64+(8*3)(1)\n"
+  "ld        5, 64+(8*4)(1)\n"
+  "ld        6, 64+(8*5)(1)\n"
+  "ld        7, 64+(8*6)(1)\n"
+  "ld        8, 64+(8*7)(1)\n"
+  "ld        9, 64+(8*8)(1)\n"
+  "ld       10, 64+(8*9)(1)\n"
+  "ld       11, 64+(8*10)(1)\n"
+  "ld       12, 64+(8*11)(1)\n"
+  "ld       14, 64+(8*12)(1)\n"
+  "ld       15, 64+(8*13)(1)\n"
+  "ld       16, 64+(8*14)(1)\n"
+  "ld       17, 64+(8*15)(1)\n"
+  "ld       18, 64+(8*16)(1)\n"
+  "ld       19, 64+(8*17)(1)\n"
+  "ld       20, 64+(8*18)(1)\n"
+  "ld       21, 64+(8*19)(1)\n"
+  "ld       22, 64+(8*20)(1)\n"
+  "ld       23, 64+(8*21)(1)\n"
+  "ld       24, 64+(8*22)(1)\n"
+  "ld       25, 64+(8*23)(1)\n"
+  "ld       26, 64+(8*24)(1)\n"
+  "ld       27, 64+(8*25)(1)\n"
+  "ld       28, 64+(8*26)(1)\n"
+  "ld       29, 64+(8*27)(1)\n"
+  "ld       30, 64+(8*28)(1)\n"
+  "ld       31, 64+(8*29)(1)\n"
+  "ld       0, 32(1)\n"
+  "mtcr     0\n"
+  "ld       0, 40(1)\n"
+  "mtlr     0\n"
+  "ld       0, 48(1)\n"
+  "mtctr    0\n"
+  "ld       0, 56(1)\n"
+  "mtxer    0\n"
+  "addi 1,1,304\n"
 #endif
 
 #if defined(__i386__) || defined(__x86_64__)
@@ -521,6 +612,8 @@ asm(
     /* Above, we popped `LR` (`r14`) off the stack, so the bx instruction will
     jump to the correct return address. */
     "bx r14\n"
+#elif defined(__powerpc64__)
+    "blr\n"
 #endif
 
 #else
