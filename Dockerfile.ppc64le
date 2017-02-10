@@ -1,7 +1,7 @@
 FROM ppc64le/ubuntu:16.04
 
 RUN apt-get update && \
-    apt-get install -y \ 
+    apt-get install -y \
         build-essential \
         git coffeescript libcurl4-openssl-dev libboost-dev libicu-dev m4 \
         libprotobuf-dev protobuf-compiler nodejs nodejs-legacy npm wget curl
